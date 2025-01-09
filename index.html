@@ -3,14 +3,25 @@
 <head>
 	<title>BinBin</title>
 	<link rel="icon" type="image/x-icon" href="./bold-letter-b.svg" type="image/icon type">
+	<link rel="stylesheet" href="web.css">
 </head>
-<body>	
+<body>
 	<h1>My first website.</h1>
 	<p>My first very good paragraph.</p>
 	<p>Hellooo!</p>
 	<a target="_blank" href="http://google.com">Google <br><br></a>
+	<a target="_blank" href="./page2.html"><button type="button">Page 2</button>
+	<br><br></a>
+	
+	<button onclick="myFunction()">Dark mode</button> 
 
-	<a target="_blank" href="http://BinBinBinBinBinBinBinBinBin.github.io/page2.html">Page 2 </a>
+	<script>
+        function myFunction() {
+            let element = document.body;
+            element.classList.toggle("dark");
+        }
+    </script>
+
 	<ul>
   		<li>Coffee</li>
   		<li>Tea</li>
@@ -36,6 +47,7 @@
 		<li>Press command shift r to hard reset the website</li>
 		<li>Your changes should now be there locally</li>
 		<li>Local means not public; nobody else can see your changes</li>
+		<li>For next Alejandro Programming Class: Create a button using html and put it onto the website, create a "dark mode"</li> 
 	</ul>
 	<img src="thepenguinofgodlydesires.png" alt="The Penguin Of Godly Desires >:D">
 </body>
