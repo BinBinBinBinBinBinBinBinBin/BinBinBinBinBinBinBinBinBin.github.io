@@ -1,42 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-<style>
+  <link rel="stylesheet" href="web.css">
 
-div.gallery {
-  margin: 5px;
-  border: 1px solid #ccc;
-  float: left;
-  width: 180px;
-}
-
-div.gallery:hover {
-  border: 1px solid #777;
-}
-
-div.gallery img {
-  width: 100%;
-  height: auto;
-}
-
-div.desc {
-  padding: 15px;
-  text-align: center;
-}
-</style>
 </head>
-<body>
-<div style="width:1000;">
+<body onload = "goodFunction()">
+
+  <script>
+        
+        function goodFunction() {
+          if (localStorage.getItem('darkmode') == 'True') {
+            let element = document.body;
+            element.classList.toggle("dark")
+          
+          }
+
+        }
+    </script>
+
+    <div style="width:1000;">
       <div style="width:500px; float:left;">Hi There</div>
       <div style="width:500px; float:right;">Hmmmmmm</div>
-  </div>
+    </div>
 <div style="clear: both;"></div>
     <div class="topnav">
-      <a class="active" href="./index.html">Home</a>
-      <a href="./gallery.html">Gallery</a>
-      <a href="#contact">Contact</a>
-      <a href="#about">About</a>
-  </div>
+  <a class="active" href="./index.html">Home</a>
+  <a href="./gallery.html">Gallery</a>
+  <a href="#contact">Contact</a>
+  <a href="#about">About</a>
+</div>
+
 <div class="gallery">
   <a target="_blank" href="animageforthelegendarygallery.jpg">
     <img src="animageforthelegendarygallery.jpg" alt="Cinque Terre" width="600" height="400">

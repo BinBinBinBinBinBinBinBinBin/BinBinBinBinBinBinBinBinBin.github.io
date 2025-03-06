@@ -5,7 +5,7 @@
 	<link rel="icon" type="image/x-icon" href="./bold-letter-b.svg" type="image/icon type">
 	<link rel="stylesheet" href="web.css">
 </head>
-<body>
+<body onload="goodFunction()">
 	<div style="width:1000;">
   		<div style="width:500px; float:left;">Hi There</div>
   		<div style="width:500px; float:right;">Hmmmmmm</div>
@@ -30,6 +30,19 @@
         function myFunction() {
             let element = document.body;
             element.classList.toggle("dark");
+            if (localStorage.getItem('darkmode') == 'True') {
+            	localStorage.setItem("darkmode", "False")
+            }
+            else if (localStorage.getItem('darkmode') == 'False') {
+            	localStorage.setItem("darkmode", "True")
+            }
+        }
+        function goodFunction() {
+        	if (localStorage.getItem('darkmode') == 'True') {
+        		let element = document.body;
+        		element.classList.toggle("dark")
+        	}
+
         }
     </script>
 
