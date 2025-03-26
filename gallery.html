@@ -20,7 +20,7 @@
         function goodFunction() {
           if (localStorage.getItem('darkmode') == 'Null') {
             let element = document.body;
-            element.classlist.toggle("dark");
+            localStorage.setItem("darkmode", "True")
           }
           if (localStorage.getItem('darkmode') == 'True') {
             let element = document.body;
