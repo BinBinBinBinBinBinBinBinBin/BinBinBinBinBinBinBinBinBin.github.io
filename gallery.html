@@ -2,11 +2,20 @@
 <html>
 <head>
   <link rel="stylesheet" href="web.css">
-
 </head>
 <body onload = "goodFunction()">
-
+  <button onclick="myFunction()">Dark mode</button> 
   <script>
+        function myFunction() {
+            let element = document.body;
+            element.classList.toggle("dark");
+            if (localStorage.getItem('darkmode') == 'True') {
+              localStorage.setItem("darkmode", "False")
+            }
+            else if (localStorage.getItem('darkmode') == 'False') {
+              localStorage.setItem("darkmode", "True")
+            }
+        }
         
         function goodFunction() {
           if (localStorage.getItem('darkmode') == 'True') {
