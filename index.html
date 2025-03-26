@@ -38,7 +38,7 @@
             }
         }
         function goodFunction() {
-        	if (localStorage.getItem('darkmode') == 'Null') {
+        	if (localStorage.getItem('darkmode') == null) {
         		let element = document.body;
         		localStorage.setItem("darkmode", "True");
         	}
