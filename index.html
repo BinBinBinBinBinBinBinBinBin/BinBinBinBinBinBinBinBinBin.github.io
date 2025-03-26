@@ -31,22 +31,26 @@
             let element = document.body;
             element.classList.toggle("dark");
             if (localStorage.getItem('darkmode') == 'True') {
-            	localStorage.setItem("darkmode", "False")
+            	localStorage.setItem("darkmode", "False");
             }
             else if (localStorage.getItem('darkmode') == 'False') {
-            	localStorage.setItem("darkmode", "True")
+            	localStorage.setItem("darkmode", "True");
             }
         }
         function goodFunction() {
+        	if (localStorage.getItem('darkmode') == 'Null') {
+        		let element = document.body;
+        		element.classlist.toggle("dark");
+        	}
         	if (localStorage.getItem('darkmode') == 'True') {
         		let element = document.body;
-        		element.classList.toggle("dark")
+        		element.classList.toggle("dark");
         	}
 
         }
     </script>
 
-	<ul>
+True
   		<li>Coffee</li>
   		<li>Tea</li>
   		<li>Milk</li>
