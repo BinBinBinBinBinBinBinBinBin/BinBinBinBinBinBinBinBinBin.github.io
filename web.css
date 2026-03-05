@@ -42,10 +42,12 @@ img{
 }
 
 /* Add a color to the active/current link */
-.topnav a.active {
+/*.topnav a.active {
   background-color: #04AA6D;
   color: ;
-}
+}*/
+
+
 div.gallery {
   margin: 5px;
   border: 1px solid #ccc;
