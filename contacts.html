@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BinBin</title>
+  <link rel="icon" type="image/x-icon" href="./bold-letter-b.svg" type="image/icon type">
+  <link rel="stylesheet" href="web.css">
+</head>
+<body onload="goodFunction()">
+  </div>
+<div style="clear: both;"></div>
+  <div class="topnav">
+  <a class="active" href="./index.html">Home</a>
+  <a href="./gallery.html">Gallery</a>
+  <a href="./contacts.html">Contact</a>
+  <a href="./thecodee.html">Code</a>
+</div>
+<p>Contact me at vahnyee@gmail.com</p>
+<button onclick="myFunction()">Dark mode</button> 
+<script>
+      function myFunction() {
+          let element = document.body;
+          element.classList.toggle("dark");
+          if (localStorage.getItem('darkmode') == 'True') {
+            localStorage.setItem("darkmode", "False");
+          }
+          else if (localStorage.getItem('darkmode') == 'False') {
+            localStorage.setItem("darkmode", "True");
+          }
+      }
+      function goodFunction() {
+        if (localStorage.getItem('darkmode') == null) {
+          let element = document.body;
+          localStorage.setItem("darkmode", "False");
+        }
+        if (localStorage.getItem('darkmode') == 'True') {
+          let element = document.body;
+          element.classList.toggle("dark");
+        }
+
+      }
+  </script>
+</body>
+</html>
