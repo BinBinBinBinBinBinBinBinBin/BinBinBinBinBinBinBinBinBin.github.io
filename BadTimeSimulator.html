@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BinBin</title>
+    <link rel="icon" type="image/x-icon" href="./bold-letter-b.svg" type="image/icon type">
+    <style>
+        body { background-color: #1a1a1a; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #wrapper { text-align: center; background: #000; padding: 20px; font-family: 'Courier New', monospace; user-select: none; }
+        #game-container { background: black; width: 600px; height: 580px; position: relative; overflow: hidden; border: 4px solid white; margin: 0 auto; }
+        #enemy-container { position: relative; height: 120px; }
+        #enemy { color: white; font-size: 60px; margin-top: 40px; transition: transform 0.05s; }
+        #eye { width: 12px; height: 12px; background: #00f2ff; border-radius: 50%; position: absolute; left: 304px; top: 62px; display: none; box-shadow: 0 0 10px #00f2ff, 0 0 20px #00f2ff; z-index: 10; }
+        #battle-box { width: 500px; height: 180px; border: 4px solid white; margin: 20px auto; position: relative; background: black; overflow: hidden; }
+        #dialogue-text { color: white; padding: 15px; text-align: left; font-size: 18px; line-height: 1.4; }
+        #soul { width: 16px; height: 16px; background: #003cff; position: absolute; display: none; z-index: 100; clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 50% 80%, 20% 100%, 0% 35%); }
+        #ui { color: white; margin: 10px; font-size: 20px; text-align: left; width: 500px; margin-left: auto; margin-right: auto; }
+        #hp-text { color: #ff0000; }
+        #turn-count { float: right; font-size: 14px; color: #888; }
+        #menu-buttons { display: flex; justify-content: space-around; width: 550px; margin: 0 auto; padding-top: 10px; }
+        .menu-btn { border: 2px solid #ff9900; color: #ff9900; padding: 5px 20px; width: 80px; transition: 0.1s; }
+    </style>
+</head>
+<body>
+<div id="wrapper">
+    <div id="game-container">
+        <div id="enemy-container">
+            <div id="enemy">☠️</div>
+            <div id="eye"></div>
+        </div>
+        <div id="battle-box">
+            <div id="dialogue-text"></div>
+            <div id="soul"></div>
+        </div>
+        <div id="ui">
+            <span style="font-weight: bold;">CHARA LV 19</span>
+            <span style="margin-left: 50px;">HP <span id="hp-text">20/20</span></span>
+            <span id="turn-count">Select Mode</span>
+        </div>
+        <div id="menu-buttons">
+            <div class="menu-btn" id="btn-0">FIGHT</div>
+            <div class="menu-btn" id="btn-1">ACT</div>
+            <div class="menu-btn" id="btn-2">ITEM</div>
+            <div class="menu-btn" id="btn-3">MERCY</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const soul = document.getElementById('soul');
+    const dialogue = document.getElementById('dialogue-text');
+    const hpDisplay = document.getElementById('hp-text');
+    const turnDisplay = document.getElementById('turn-count');
+    const eye = document.getElementById('eye');
+    const enemy = document.getElementById('enemy');
+    const battleBox = document.getElementById('battle-box');
+    const buttons = [
+        document.getElementById('btn-0'), 
+        document.getElementById('btn-1'), 
+        document.getElementById('btn-2'), 
+        document.getElementById('btn-3')
+    ];
+
+    let state = "MODE_SELECT";
+    let menuIndex = 0;
+    let itemIndex = 0;
+    let hp = 20, maxHp = 20;
+    let turnsSurvived = 0, totalTurns = 13;
+    let onBreak = false;
+    let soulX = 242, soulY = 164, velocityY = 0;
+    let keys = {};
+    let invincibilityFrames = 0;
+    let specialWave = 0;
+
+    let inventory = [
+        { name: "B.Pie", heal: 20, count: 1 },
+        { name: "Ramen", heal: 10, count: 1 },
+        { name: "L.Hero", heal: 5, count: 5 }
+    ];
+
+    function typeWriter(text) {
+        dialogue.innerHTML = "";
+        let i = 0;
+        const interval = setInterval(() => {
+            dialogue.innerHTML += text.charAt(i);
+            i++;
+            if (i >= text.length || keys['x']) {
+                dialogue.innerHTML = text;
+                clearInterval(interval);
+            }
+        }, 20);
+    }
+
+    function initModeSelect() {
+        state = "MODE_SELECT";
+        eye.style.display = "none";
+        dialogue.innerHTML = "* Select Mode:<br><br>[Z] NORMAL (13 Turns)<br>[X] FINAL BOSS (Skip to Special)";
+    }
+
+    function startGame(mode) {
+        hp = 20; inventory[0].count = 1; inventory[1].count = 1; inventory[2].count = 5;
+        hpDisplay.innerText = "20/20";
+        if (mode === "FINAL") { turnsSurvived = 12; typeWriter("* Jump fast."); }
+        else { turnsSurvived = 0; typeWriter("* Ready?"); }
+        state = "MENU"; updateTurnDisplay(); updateMenuUI();
+    }
+
+    function updateTurnDisplay() { turnDisplay.innerText = "Turn " + (turnsSurvived + 1) + "/" + totalTurns; }
+
+    document.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        keys[key] = true;
+        if (state === "MODE_SELECT") {
+            if (key === "z") startGame("NORMAL");
+            if (key === "x") startGame("FINAL");
+            return;
+        }
+        if ((state === "DEAD" || state === "WON") && key === "z") initModeSelect();
+        if (state === "MENU") {
+            if (key === "j") menuIndex = (menuIndex + 3) % 4;
+            if (key === "l") menuIndex = (menuIndex + 1) % 4;
+            updateMenuUI();
+            if (key === "z") {
+                if (menuIndex === 2) { state = "ITEM_SELECT"; itemIndex = 0; updateInventoryDisplay(); }
+                else handleMenuAction();
+            }
+        } else if (state === "ITEM_SELECT") {
+            if (key === "j") itemIndex = (itemIndex + 2) % 3;
+            if (key === "l") itemIndex = (itemIndex + 1) % 3;
+            updateInventoryDisplay();
+            if (key === "z") useItem();
+            if (key === "x") { state = "MENU"; showStatusText(); }
+        } else if (state === "MESSAGE" && key === "z") {
+            if (onBreak) { state = "MENU"; showStatusText(); }
+            else startEnemyTurn();
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        keys[e.key.toLowerCase()] = false;
+        if ((e.key === 'i' || e.key === 'z' || e.key === 'x') && velocityY < 0) velocityY *= 0.2;
+    });
+
+    function showStatusText() {
+        if (onBreak) typeWriter("* Sans is resting. (FIGHT to resume)");
+        else if (turnsSurvived === 12) typeWriter("* survivespecialattack.");
+        else typeWriter("* Turn " + (turnsSurvived + 1) + ".");
+    }
+
+    function updateInventoryDisplay() {
+        let text = "* Choose an item: <br>";
+        inventory.forEach((item, i) => {
+            let prefix = (i === itemIndex) ? "> " : "  ";
+            text += prefix + item.name + " (x" + item.count + ")  ";
+        });
+        dialogue.innerHTML = text;
+    }
+
+    function handleMenuAction() {
+        if (menuIndex === 0) {
+            if (onBreak) { onBreak = false; typeWriter("* End of the line."); state = "MESSAGE"; }
+            else { typeWriter("* Miss."); state = "MESSAGE"; }
+        } else if (menuIndex === 1) {
+            typeWriter("* Check.");
+            if (onBreak) state = "MENU"; else state = "MESSAGE";
+        } else if (menuIndex === 3) {
+            typeWriter("* No.");
+            if (onBreak) state = "MENU"; else state = "MESSAGE";
+        }
+    }
+
+    function useItem() {
+        let item = inventory[itemIndex];
+        if (item.count > 0) {
+            item.count--;
+            hp = Math.min(maxHp, hp + item.heal);
+            hpDisplay.innerText = hp + "/" + maxHp;
+            typeWriter("* Used " + item.name + ". +" + item.heal + " HP.");
+            if (onBreak) state = "MENU"; else state = "MESSAGE";
+        }
+    }
+
+    function updateMenuUI() {
+        buttons.forEach((btn, i) => {
+            btn.style.background = (i === menuIndex) ? "#fff" : "black";
+            btn.style.color = (i === menuIndex) ? "black" : "#ff9900";
+        });
+    }
+
+    function takeDamage(baseAmt) {
+        if (invincibilityFrames > 0) return;
+        let scaling = 1 + (turnsSurvived * 0.25);
+        let finalDamage = Math.ceil(baseAmt * scaling);
+        hp = Math.max(0, hp - finalDamage);
+        hpDisplay.innerText = hp + "/" + maxHp;
+        invincibilityFrames = 25;
+        enemy.style.transform = "translateX(5px)";
+        soul.style.opacity = "0.5";
+        setTimeout(() => { enemy.style.transform = "translateX(0)"; soul.style.opacity = "1"; }, 50);
+        if (hp <= 0) gameOver();
+    }
+
+    function spawnBlaster(fast = false) {
+        const b = document.createElement('div');
+        const isVertical = Math.random() > 0.5;
+        b.style.position = 'absolute';
+        b.style.background = 'rgba(255, 255, 255, 0.15)';
+        b.style.zIndex = '50';
+        const pos = Math.random() * (isVertical ? 460 : 140);
+        if (isVertical) { b.style.width = '35px'; b.style.height = '180px'; b.style.left = pos + 'px'; b.style.top = '0px'; }
+        else { b.style.width = '500px'; b.style.height = '35px'; b.style.left = '0px'; b.style.top = pos + 'px'; }
+        battleBox.appendChild(b);
+        setTimeout(() => {
+            b.style.background = 'white';
+            const sRect = soul.getBoundingClientRect();
+            const bRect = b.getBoundingClientRect();
+            if (sRect.left < bRect.right && sRect.right > bRect.left && sRect.top < bRect.bottom && sRect.bottom > bRect.top) takeDamage(2);
+            setTimeout(() => b.remove(), 100);
+        }, fast ? 450 : 750);
+    }
+
+    function spawnPrecisionGaps() {
+        let gapSize = Math.max(45, 56 - (turnsSurvived * 1.2));
+        let gapY;
+        if (turnsSurvived === 12) {
+            specialWave += 0.35;
+            gapY = 60 + (Math.sin(specialWave) * 35);
+        } else {
+            gapY = 30 + Math.random() * 80;
+        }
+        createBone(180 - (gapY + gapSize), 180 - (180 - (gapY + gapSize)));
+        createBone(gapY, 0);
+    }
+
+    function createBone(height, topPos) {
+        const b = document.createElement('div');
+        b.style.width = '12px'; b.style.height = height + 'px';
+        b.style.background = 'white'; b.style.position = 'absolute';
+        b.style.left = '500px'; b.style.top = topPos + 'px';
+        battleBox.appendChild(b);
+        let bx = 500;
+        const move = setInterval(() => {
+            bx -= (4.5 + (turnsSurvived * 0.12));
+            b.style.left = bx + 'px';
+            const sRect = soul.getBoundingClientRect();
+            const bRect = b.getBoundingClientRect();
+            if (sRect.left < bRect.right && sRect.right > bRect.left && sRect.top < bRect.bottom && sRect.bottom > bRect.top) takeDamage(1);
+            if (bx < -20 || state !== "ATTACK") { b.remove(); clearInterval(move); }
+        }, 16);
+    }
+
+    function startEnemyTurn() {
+        state = "ATTACK"; dialogue.innerHTML = ""; soul.style.display = "block";
+        soulY = 164; velocityY = 0;
+        if (turnsSurvived === 12) eye.style.display = "block";
+        let turnFrames = turnsSurvived === 12 ? 850 : 480;
+        const loop = setInterval(() => {
+            if (invincibilityFrames > 0) invincibilityFrames--;
+            handlePhysics();
+            if (turnFrames % 45 === 0) spawnPrecisionGaps();
+            if (turnsSurvived === 12 && turnFrames % 90 === 0) spawnBlaster(true);
+            else if (turnFrames % 120 === 0 && turnsSurvived >= 1) spawnBlaster(false);
+            turnFrames--;
+            if (turnFrames <= 0 || state !== "ATTACK") { clearInterval(loop); if (hp > 0) endTurn(); }
+        }, 16);
+    }
+
+    function handlePhysics() {
+        const gravity = 0.75;
+        const jumpPower = -13.5;
+        velocityY += gravity;
+        soulY += velocityY;
+        if (soulY >= 164) {
+            soulY = 164;
+            velocityY = 0;
+            if (keys['i'] || keys['z'] || keys['x']) velocityY = jumpPower;
+        }
+        if (soulY <= 0) { soulY = 0; if (velocityY < 0) velocityY = 0.2; }
+        if (keys['j'] && soulX > 0) soulX -= 4.5;
+        if (keys['l'] && soulX < 484) soulX += 4.5;
+        soul.style.top = soulY + 'px';
+        soul.style.left = soulX + 'px';
+    }
+
+    function endTurn() {
+        state = "MENU"; soul.style.display = "none";
+        turnsSurvived++;
+        if (turnsSurvived === 7) onBreak = true;
+        if (turnsSurvived >= totalTurns) { state = "WON"; eye.style.display = "none"; typeWriter("* Victory."); }
+        else { updateTurnDisplay(); showStatusText(); }
+        updateMenuUI();
+    }
+
+    function gameOver() {
+        state = "DEAD"; soul.style.display = "none"; eye.style.display = "none";
+        dialogue.innerHTML = "<div style='color:#f00; font-size:24px; padding-top:40px;'>GAME OVER<br><span style='font-size:14px; color:#fff;'>Z to Main Menu</span></div>";
+    }
+
+    initModeSelect();
+</script>
+</body>
+</html>
