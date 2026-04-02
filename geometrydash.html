@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry Dash</title>
+    <link rel="icon" type="image/x-icon" href="./bold-letter-b.svg" type="image/icon type">
+    <style>
+        body {
+            background-color: #111;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container" style="text-align: center; background: #000; padding: 20px; border-radius: 10px; font-family: sans-serif; position: relative; width: 840px; margin: auto;">
+    <div style="display: flex; justify-content: space-between; width: 800px; margin: 0 auto 5px; color: white;">
+        <span id="attemptText" style="font-weight: bold; font-size: 18px;">ATTEMPT 1</span>
+        <span id="modeText" style="font-weight: bold; font-size: 18px; color: #f1c40f;">MODE: CUBE</span>
+        <span id="percentText" style="font-weight: bold; font-size: 18px;">0%</span>
+    </div>
+    <div id="progress-container" style="width: 800px; height: 10px; background: #333; margin: 0 auto 10px; border-radius: 5px; overflow: hidden;">
+        <div id="progressBar" style="width: 0%; height: 100%; background: #00f2ff; box-shadow: 0 0 10px #00f2ff;"></div>
+    </div>
+    <canvas id="gameCanvas" width="800" height="400" style="border:4px solid #333; background: #050a14; cursor: pointer;"></canvas>
+
+    <div id="victoryScreen" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); color: white; padding: 40px; border: 3px solid #00f2ff; border-radius: 20px; z-index: 100; width: 300px; box-shadow: 0 0 30px #00f2ff;">
+        <h1 style="color: #00f2ff; margin-top: 0; font-size: 24px;">LEVEL COMPLETE!</h1>
+        <button onclick="fullReset()" style="background: #00f2ff; border: none; padding: 12px 25px; font-size: 18px; font-weight: bold; cursor: pointer; border-radius: 5px; color: black;">REPLAY</button>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const progressBar = document.getElementById('progressBar');
+const percentText = document.getElementById('percentText');
+const attemptText = document.getElementById('attemptText');
+const modeText = document.getElementById('modeText');
+const victoryScreen = document.getElementById('victoryScreen');
+
+const levelData = [
+    0,0,0,0,0,0,0,0,0,0,
+    1,0,4,4,4,0,1,1,0,8,
+    0,7,0,4,4,0,7,0,4,4,0,9,
+    0,1,1,0,4,4,4,0,1,0,10,
+    0,7,1,7,1,7,1,7,1,0,6,
+    0,1,0,7,0,4,4,4,0,0,0,0,0,0,5
+];
+
+const activatedPortals = new Set();
+const GRID_SIZE = 110, floorY = 350;
+let attempts = 1, scrollX = 0, isDead = false, isVictory = false, deathTimer = 0, keys = {}, particles = [];
+let mode = "cube", ballGravityDir = 1, moveSpeed = 9, frameCount = 0;
+
+const player = { x: 150, y: 300, size: 30, velocity: 0, rotation: 0 };
+
+// Function to reset attempts back to 1 and restart
+function fullReset() {
+    attempts = 1;
+    restartGame();
+}
+
+function restartGame() {
+    scrollX = 0; player.x = 150; player.y = 300; player.velocity = 0; player.rotation = 0;
+    mode = "cube"; ballGravityDir = 1; isDead = false; isVictory = false; deathTimer = 0;
+    particles = []; moveSpeed = 9; activatedPortals.clear();
+    victoryScreen.style.display = "none";
+    attemptText.innerText = "ATTEMPT " + attempts;
+    modeText.innerText = "MODE: " + mode.toUpperCase();
+}
+
+function update() {
+    frameCount++;
+    if (isVictory || isDead) {
+        if (isDead) {
+            particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.6; p.life -= 0.03; });
+            if (++deathTimer > 40) { attempts++; restartGame(); }
+        }
+        return;
+    }
+
+    let isGrounded = (player.y + player.size >= floorY - 2);
+    let isOnCeiling = (player.y <= 2);
+
+    let endWallIndex = levelData.indexOf(5);
+    let wallWorldX = endWallIndex * GRID_SIZE;
+    let wallScreenX = wallWorldX - scrollX;
+
+    if (wallScreenX > canvas.width - 120) {
+        scrollX += moveSpeed;
+    } else {
+        player.x += moveSpeed;
+    }
+
+    if (player.x + player.size >= wallScreenX) {
+        player.x = wallScreenX - player.size;
+        isVictory = true;
+        victoryScreen.style.display = "block";
+    }
+
+    levelData.forEach((type, i) => {
+        let bX = (i * GRID_SIZE) - scrollX;
+        if (type === 4) {
+            let bY = floorY - 50;
+            if (player.x + player.size > bX + 5 && player.x < bX + GRID_SIZE - 5) {
+                if (player.y + player.size >= bY && player.y + player.size <= bY + 15 && player.velocity >= 0) {
+                    player.y = bY - player.size; player.velocity = 0; isGrounded = true;
+                }
+            }
+            if (player.x + player.size > bX + 2 && player.x < bX + GRID_SIZE - 2) {
+                if (player.y + player.size > bY + 10 && player.y < bY + 50) die();
+            }
+        }
+    });
+
+    if (mode === "cube") {
+        if ((keys['Space'] || keys['mousedown']) && isGrounded) player.velocity = -15;
+        player.velocity += 1.0; player.y += player.velocity;
+        if (player.y + player.size > floorY) { player.y = floorY - player.size; player.velocity = 0; player.rotation = Math.round(player.rotation / 90) * 90; }
+        else if (!isGrounded) { player.rotation += 6; }
+    }
+    else if (mode === "ball") {
+        if (keys['justPressed'] && (isGrounded || isOnCeiling)) {
+            ballGravityDir *= -1;
+            player.velocity = ballGravityDir * 0.5; 
+            keys['justPressed'] = false;
+        }
+        if (!isGrounded && !isOnCeiling) {
+            player.velocity *= 1.4;
+            if (Math.abs(player.velocity) > 25) player.velocity = 25 * (player.velocity > 0 ? 1 : -1);
+        }
+        player.y += player.velocity;
+        player.rotation += 8 * ballGravityDir;
+    }
+    else if (mode === "ufo") {
+        if (keys['justPressed']) { player.velocity = -11; keys['justPressed'] = false; }
+        player.velocity += 0.65; player.y += player.velocity; player.rotation = player.velocity * 2;
+    }
+    else if (mode === "ship") {
+        if (keys['Space'] || keys['mousedown']) player.velocity -= 0.9; else player.velocity += 0.4;
+        player.velocity *= 0.98; player.y += player.velocity; player.rotation = player.velocity * 3;
+    }
+    else if (mode === "wave") {
+        if (keys['Space'] || keys['mousedown']) player.y -= 11; else player.y += 11;
+        player.rotation = (keys['Space'] || keys['mousedown']) ? -45 : 45;
+    }
+
+    if (player.y < 0) { player.y = 0; player.velocity = 0; }
+    if (player.y + player.size > floorY) { player.y = floorY - player.size; player.velocity = 0; }
+
+    let progress = Math.min((scrollX / (levelData.length * GRID_SIZE - canvas.width)) * 100, 100);
+    progressBar.style.width = progress + "%";
+    percentText.innerText = Math.floor(progress) + "%";
+
+    levelData.forEach((type, i) => {
+        let x = (i * GRID_SIZE) - scrollX;
+        if (x < -100 || x > 900) return;
+        let pRect = {l: player.x, r: player.x+player.size, t: player.y, b: player.y+player.size};
+
+        if (type === 1 && (isPointInTriangle(pRect.l+5, pRect.b, x, floorY, x+25, floorY-43, x+50, floorY) || isPointInTriangle(pRect.r-5, pRect.b, x, floorY, x+25, floorY-43, x+50, floorY))) die();
+        if (type === 7 && (isPointInTriangle(pRect.l+5, pRect.t, x, 0, x+25, 43, x+50, 0) || isPointInTriangle(pRect.r-5, pRect.t, x, 0, x+25, 43, x+50, 0))) die();
+
+        if (player.x >= x && player.x < x + 50 && !activatedPortals.has(i)) {
+            if (type === 8) { mode = "ball"; modeText.innerText = "MODE: BALL"; keys['justPressed'] = false; activatedPortals.add(i); }
+            if (type === 9) { mode = "ufo"; modeText.innerText = "MODE: UFO"; activatedPortals.add(i); }
+            if (type === 10) { mode = "wave"; modeText.innerText = "MODE: WAVE"; activatedPortals.add(i); }
+            if (type === 6) { mode = "ship"; modeText.innerText = "MODE: SHIP"; activatedPortals.add(i); }
+        }
+    });
+}
+
+function die() { if(!isDead){ isDead = true; particles = []; for(let i=0;i<15;i++) particles.push({x:player.x+15, y:player.y+15, vx:(Math.random()-0.5)*12, vy:(Math.random()-0.5)*12, size:Math.random()*7+3, life:1.0}); }}
+
+function isPointInTriangle(px, py, x1, y1, x2, y2, x3, y3) {
+    let areaOrig = Math.abs((x1*(y2-y3) + x2*(y3-y1) + x3*(y1-y2))/2.0);
+    let area1 = Math.abs((px*(y1-y2) + x1*(y2-py) + x2*(py-y1))/2.0);
+    let area2 = Math.abs((px*(y2-y3) + x2*(y3-py) + x3*(py-y2))/2.0);
+    let area3 = Math.abs((px*(y3-y1) + x3*(y1-py) + x1*(py-y3))/2.0);
+    return Math.abs(areaOrig - (area1 + area2 + area3)) < 0.1;
+}
+
+function draw() {
+    ctx.fillStyle = '#050a14'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#0a1a2f'; ctx.lineWidth = 1;
+    for(let gx=0; gx<canvas.width; gx+=40) { ctx.beginPath(); ctx.moveTo(gx - (scrollX % 40), 0); ctx.lineTo(gx - (scrollX % 40), floorY); ctx.stroke(); }
+
+    ctx.strokeStyle = '#00f2ff'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(canvas.width, floorY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(canvas.width, 0); ctx.stroke();
+
+    levelData.forEach((type, i) => {
+        let x = (i * GRID_SIZE) - scrollX;
+        if (x < -150 || x > 950) return;
+
+        if (type === 4) {
+            ctx.fillStyle = '#1a1a1a'; ctx.fillRect(x, floorY-50, GRID_SIZE, 50);
+            ctx.strokeStyle = '#3498db'; ctx.lineWidth = 3; ctx.strokeRect(x+5, floorY-45, GRID_SIZE-10, 40);
+            ctx.fillStyle = '#3498db';
+            ctx.fillRect(x+8, floorY-42, 4, 4); ctx.fillRect(x+GRID_SIZE-12, floorY-42, 4, 4);
+            ctx.fillRect(x+8, floorY-10, 4, 4); ctx.fillRect(x+GRID_SIZE-12, floorY-10, 4, 4);
+        }
+        if (type === 1 || type === 7) {
+            let yBase = (type === 1) ? floorY : 0;
+            let yTip = (type === 1) ? floorY-43 : 43;
+            let grad = ctx.createLinearGradient(x, yBase, x, yTip);
+            grad.addColorStop(0, '#555'); grad.addColorStop(1, '#ff3e3e');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(x, yBase); ctx.lineTo(x+25, yTip); ctx.lineTo(x+50, yBase); ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x+25, yTip); ctx.lineTo(x+25, yBase); ctx.stroke();
+        }
+        if ([6, 8, 9, 10].includes(type)) {
+            let pColors = { 8: '#e74c3c', 9: '#f39c12', 10: '#3498db', 6: '#2ecc71' };
+            let glow = Math.sin(frameCount * 0.1) * 10 + 20;
+            ctx.fillStyle = pColors[type]; ctx.globalAlpha = 0.2; ctx.fillRect(x, 0, 40, 400);
+            ctx.globalAlpha = 1.0; ctx.strokeStyle = pColors[type]; ctx.lineWidth = 4;
+            ctx.strokeRect(x + (glow/4), 10, 40 - (glow/2), 380);
+        }
+        if (type === 5) {
+            let grad = ctx.createLinearGradient(x, 0, x+60, 0);
+            grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#00f2ff');
+            ctx.fillStyle = grad; ctx.fillRect(x, 0, 60, floorY);
+            ctx.fillStyle = '#000';
+            for(let cx=0; cx<60; cx+=20) for(let cy=0; cy<60; cy+=20) if((cx+cy)%40===0) ctx.fillRect(x+cx, cy, 20, 20);
+        }
+    });
+
+    if (!isDead) {
+        ctx.save(); ctx.translate(player.x+15, player.y+15); ctx.rotate(player.rotation*Math.PI/180);
+        ctx.shadowBlur = 10; ctx.shadowColor = '#f1c40f'; ctx.fillStyle = '#f1c40f';
+        if (mode === "ball") { ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle='#000'; ctx.stroke(); ctx.beginPath(); ctx.moveTo(-15,0); ctx.lineTo(15,0); ctx.stroke(); }
+        else if (mode === "wave") { ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(-15, -12); ctx.lineTo(-15, 12); ctx.closePath(); ctx.fill(); }
+        else if (mode === "ufo") { ctx.fillRect(-15, -2, 30, 8); ctx.beginPath(); ctx.arc(0, -2, 12, Math.PI, 0); ctx.fill(); }
+        else { ctx.fillRect(-15, -15, 30, 30); ctx.strokeStyle = '#000'; ctx.lineWidth=2; ctx.strokeRect(-15,-15,30,30); ctx.strokeRect(-8,-8,16,16); }
+        ctx.fillStyle = '#fff'; ctx.fillRect(4, -8, 6, 6); ctx.shadowBlur = 0; ctx.restore();
+    }
+    particles.forEach(p => { ctx.fillStyle = `rgba(241, 196, 15, ${p.life})`; ctx.fillRect(p.x, p.y, p.size, p.size); });
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp') { if (!keys['Space']) keys['justPressed'] = true; keys['Space'] = true; }
+});
+window.addEventListener('keyup', (e) => { if (e.code === 'Space' || e.code === 'ArrowUp') keys['Space'] = false; });
+canvas.addEventListener('mousedown', () => { keys['mousedown'] = true; keys['justPressed'] = true; });
+window.addEventListener('mouseup', () => { keys['mousedown'] = false; });
+loop(); restartGame();
+</script>
+
+</body>
+</html>

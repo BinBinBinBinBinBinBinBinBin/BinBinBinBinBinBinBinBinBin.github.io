@@ -1,9 +1,6 @@
 body{
 }
-img{
-    height:140px;
-        width:140px; 
-}
+
 .mode {
     float:right;
 }
@@ -60,8 +57,9 @@ div.gallery:hover {
 }
 
 div.gallery img {
-  width: 100%;
-  height: auto;
+  width: 180px;
+  height: 180px;
+  object-fit:cover;
 }
 
 div.desc {
