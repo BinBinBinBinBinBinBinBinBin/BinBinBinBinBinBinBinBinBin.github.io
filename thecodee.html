@@ -5,12 +5,13 @@
 	<link rel="icon" type="image/x-icon" href="./bold-letter-b.svg" type="image/icon type">
 	<link rel="stylesheet" href="web.css">
 </head>
-<body onload="goodFunction()">
+<body onload="goodFunction(); startTime();">
 <div style="clear: both;"></div>
 	<div class="topnav">
   <a class="active" href="./index.html">Home</a>
   <a style="background-color: #ff2c2c" href="./thecodee.html">Projects</a>
   <a onclick="myFunction()">Dark Mode</a>
+  <a><div id="txt">Hello</div></a>
 </div>
     <br>
 	<div class="responsive">
@@ -30,7 +31,26 @@
 
 <div class="clearfix"></div>
     <br><br>
-	<script>
+
+  <div id="txt"></div>
+
+  <script>
+        function startTime() {
+          const today = new Date();
+          let h = today.getHours();
+          let m = today.getMinutes();
+          let s = today.getSeconds();
+          m = checkTime(m);
+          s = checkTime(s);
+          document.getElementById('txt').innerHTML =  h + ":" + m + ":" + s;
+          setTimeout(startTime, 1000);
+        }
+
+        function checkTime(i) {
+          if (i < 10) {i = "0" + i};  // add zero in front of numbers < 10
+          return i;
+        }
+
         function myFunction() {
             let element = document.body;
             element.classList.toggle("dark");
